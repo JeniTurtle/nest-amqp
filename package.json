@@ -1,0 +1,36 @@
+{
+  "name": "@jiaxinjiang/nest-amqp",
+  "version": "1.0.0",
+  "description": "RabbitMQ component for NestJs.",
+  "keywords": [
+    "nest",
+    "nest-amqp",
+    "nest-rabbitmq"
+  ],
+  "main": "dist/",
+  "scripts": {
+    "build": "tsc -d"
+  },
+  "dependencies": {
+    "amqplib": "^0.5.5",
+    "lodash": "^4.17.15",
+    "reflect-metadata": "^0.1.12",
+    "rxjs": "^6.0.0"
+  },
+  "devDependencies": {
+    "@nestjs/common": "^7.2.0",
+    "@nestjs/core": "^6.2.4",
+    "@nestjs/testing": "^7.0.0",
+    "@types/amqplib": "^0.5.13",
+    "@types/lodash": "^4.14.149",
+    "@types/jest": "^25.1.5",
+    "coveralls": "^3.0.3",
+    "jest": "^24.7.1",
+    "prettier": "^1.13.7",
+    "ts-jest": "^24.0.2",
+    "typescript": "^3.7.3"
+  },
+  "engines": {
+    "node": ">=8.9.0"
+  }
+}
