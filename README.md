@@ -5,7 +5,6 @@
 ## Features
 
 - Automatic consumption with annotations.
-- Depend on `@jiaxinjiang/nest-config` module configuration information.
 
 ### Installation
 

@@ -1,6 +1,6 @@
 {
   "name": "@jiaxinjiang/nest-amqp",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "RabbitMQ component for NestJs.",
   "keywords": [
     "nest",

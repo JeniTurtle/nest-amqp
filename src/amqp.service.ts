@@ -1,16 +1,22 @@
-import { connect, ConfirmChannel, Connection } from 'amqplib';
-import { Injectable, Provider, Logger, LoggerService } from '@nestjs/common';
-import { DiscoveryService, MetadataScanner, Reflector } from '@nestjs/core';
-import { InstanceWrapper } from '@nestjs/core/injector/instance-wrapper';
-import { AMQP_CONSUMER_METADATA } from './amqp.constants';
-import { AmqpConfig } from './amqp.interface';
+import { connect, ConfirmChannel, Connection } from "amqplib";
+import {
+  Injectable,
+  Provider,
+  Logger,
+  LoggerService,
+  OnApplicationBootstrap,
+} from "@nestjs/common";
+import { DiscoveryService, MetadataScanner, Reflector } from "@nestjs/core";
+import { InstanceWrapper } from "@nestjs/core/injector/instance-wrapper";
+import { AMQP_CONSUMER_METADATA } from "./amqp.constants";
+import { AmqpConfig } from "./amqp.interface";
 
 function defaultDecode(data: Buffer) {
   return JSON.parse(data.toString());
 }
 
 @Injectable()
-export class AmqpService {
+export class AmqpService implements OnApplicationBootstrap {
   public static amqpProviders: Provider[];
 
   private logger: Logger | LoggerService;
@@ -35,7 +41,7 @@ export class AmqpService {
     private readonly discoveryService: DiscoveryService,
     private readonly metadataScanner: MetadataScanner,
     private readonly reflector: Reflector,
-    private readonly amqpConfig: AmqpConfig,
+    private readonly amqpConfig: AmqpConfig
   ) {
     this.logger = amqpConfig.logger || new Logger(AmqpService.name);
   }
@@ -43,6 +49,9 @@ export class AmqpService {
   async amqpInit() {
     await this.connect();
     await this.createChannel();
+  }
+
+  onApplicationBootstrap() {
     this.explore();
   }
 
@@ -62,16 +71,16 @@ export class AmqpService {
 
   private async connect() {
     this._connection = await connect(this.amqpConfig.connection);
-    this._connection.once('close', this.onConnectionClose.bind(this));
-    this._connection.on('error', err => this.logger.error(err));
+    this._connection.once("close", this.onConnectionClose.bind(this));
+    this._connection.on("error", (err) => this.logger.error(err));
   }
 
   async createChannel() {
     try {
       // 默认开启confirm模式
       this._channel = await this._connection.createConfirmChannel();
-      this._channel.on('close', () => this.onChannelClose());
-      this._channel.on('error', error => this.onChannelError(error));
+      this._channel.on("close", () => this.onChannelClose());
+      this._channel.on("error", (error) => this.onChannelError(error));
     } catch (err) {
       setTimeout(() => {
         this.createChannel();
@@ -93,19 +102,19 @@ export class AmqpService {
     this.metadataScanner.scanFromPrototype(
       instance,
       Object.getPrototypeOf(instance),
-      async key => {
+      async (key) => {
         const queueName: string = this.reflector.get(
           AMQP_CONSUMER_METADATA,
-          instance[key],
+          instance[key]
         );
         if (!queueName) {
           return;
         }
         const queueMetadata = this.amqpConfig.queues.find(
-          option => option.queue === queueName,
+          (option) => option.queue === queueName
         );
         const exchangeMetadate = this.amqpConfig.exchanges.find(
-          option => option.exchange === queueMetadata.exchange,
+          (option) => option.exchange === queueMetadata.exchange
         );
         const { exchange, type, options: exchangeOptions } = exchangeMetadate;
         const {
@@ -117,11 +126,11 @@ export class AmqpService {
         } = queueMetadata;
         await this._channel.assertExchange(
           exchange,
-          type || 'direct',
-          exchangeOptions,
+          type || "direct",
+          exchangeOptions
         );
         const queue = await this._channel.assertQueue(queueName, queueOptions);
-        if (exchangeMetadate.type !== 'fanout') {
+        if (exchangeMetadate.type !== "fanout") {
           if (patterns instanceof Array) {
             for (const pattern of patterns) {
               await this._channel.bindQueue(queue.queue, exchange, pattern);
@@ -130,20 +139,20 @@ export class AmqpService {
             await this._channel.bindQueue(queue.queue, exchange, patterns);
           }
         } else {
-          await this._channel.bindQueue(queue.queue, exchange, '');
+          await this._channel.bindQueue(queue.queue, exchange, "");
         }
         await this._channel.prefetch(1);
         await this._channel.consume(
           queue.queue,
-          async msg => {
+          async (msg) => {
             this.logger.log(
-              `Received AMQP Message: { Exchange: ${exchange}, Queue: ${queue.queue}, Function: ${instance[key].name} }`,
+              `Received AMQP Message: { Exchange: ${exchange}, Queue: ${queue.queue}, Function: ${instance[key].name} }`
             );
             try {
               await instance[key](
                 decode(msg.content),
                 msg.fields,
-                msg.properties,
+                msg.properties
               );
               this._channel.ack(msg);
             } catch (err) {
@@ -154,12 +163,12 @@ export class AmqpService {
           {
             ...consume,
             noAck: consume.noAck === true ? true : false,
-          },
+          }
         );
         this.logger.log(
-          `[Consumer -> exchange: ${exchange} queue: ${queue.queue}] initialized`,
+          `[Consumer -> exchange: ${exchange} queue: ${queue.queue}] initialized`
         );
-      },
+      }
     );
   }
 
